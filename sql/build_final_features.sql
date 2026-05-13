@@ -1,4 +1,15 @@
-CREATE OR REPLACE TABLE `mimic-iv-build.my_dataset.final_features` AS
+-- Builds the hourly feature table used for sepsis onset prediction.
+-- Requires credentialed MIMIC-IV access through PhysioNet and BigQuery.
+--
+-- This query uses MIMIC-IV source tables and derived concepts from the
+-- official MIT-LCP MIMIC Code repository / MIMIC-IV derived dataset:
+--   icustay_hourly
+--   gcs
+--   sepsis3
+--
+-- Replace `your_project.your_dataset` with your own BigQuery project and dataset.
+
+CREATE OR REPLACE TABLE `your_project.your_dataset.final_features` AS
 WITH 
 
 icu_ranked AS (
@@ -30,7 +41,7 @@ spine AS (
     DATETIME_SUB(ih.endtime, INTERVAL 1 HOUR) AS starttime,
     ih.endtime AS endtime
   FROM first_icu f
-  JOIN `mimic-iv-build.my_dataset.icustay_hourly` ih
+  JOIN `your_project.your_dataset.icustay_hourly` ih
     ON f.stay_id = ih.stay_id
   WHERE ih.hr >= 0
 ),
@@ -383,7 +394,7 @@ gcs_hourly AS (
     AVG(dg.gcs_motor) AS gcs_motor,
     MAX(dg.gcs_unable) AS gcs_unable
   FROM spine s
-  LEFT JOIN `mimic-iv-build.my_dataset.gcs` dg
+  LEFT JOIN `your_project.your_dataset.gcs` dg
     ON s.stay_id = dg.stay_id
    AND dg.charttime > s.starttime
    AND dg.charttime <= s.endtime
@@ -492,7 +503,7 @@ sepsis_hourly AS (
   SELECT
     stay_id,
     CAST(sofa_time AS DATETIME) AS onset_dt
-  FROM `mimic-iv-build.my_dataset.sepsis3`
+  FROM `your_project.your_dataset.sepsis3`
   WHERE sepsis3 = TRUE
 )
 
